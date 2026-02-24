@@ -10,6 +10,7 @@ app.use('/scripts/ts-fsrs', express.static('node_modules/ts-fsrs/dist'));
 let profileCache = null;
 let lastFetched = 0;
 const CACHE_DURATION = 3600000; // 1 hour
+const CACHE_FILE = 'profiles_cache.json';
 
 const fetchPage = (token, offset, limit) => {
   return new Promise((resolve, reject) => {
@@ -43,11 +44,26 @@ const fetchPage = (token, offset, limit) => {
 app.get('/api/directory', async (req, res) => {
   try {
     const now = Date.now();
+
+    // L1: In-memory cache
     if (profileCache && now - lastFetched < CACHE_DURATION) {
-      console.log('Serving directory from cache');
+      console.log('Serving directory from L1 (memory) cache');
       return res.json(profileCache);
     }
 
+    // L2: Disk cache
+    if (fs.existsSync(CACHE_FILE)) {
+      const stats = fs.statSync(CACHE_FILE);
+      if (now - stats.mtimeMs < CACHE_DURATION) {
+        console.log('Serving directory from L2 (disk) cache');
+        const data = fs.readFileSync(CACHE_FILE, 'utf8');
+        profileCache = JSON.parse(data);
+        lastFetched = stats.mtimeMs;
+        return res.json(profileCache);
+      }
+    }
+
+    console.log('Cache expired or missing. Fetching from API...');
     const token = fs.readFileSync('tok', 'utf8').trim();
     let allProfiles = [];
     let offset = 0;
@@ -75,6 +91,10 @@ app.get('/api/directory', async (req, res) => {
 
     profileCache = allProfiles;
     lastFetched = now;
+
+    // Save to L2 (disk) cache
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(allProfiles), 'utf8');
+
     res.json(allProfiles);
   } catch (error) {
     console.error('Error fetching directory:', error);
