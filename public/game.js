@@ -6,7 +6,7 @@ let cardStates = JSON.parse(localStorage.getItem('rc-memory-game-cards') || '{}'
 let confusionMatrix = JSON.parse(localStorage.getItem('rc-memory-game-confusion') || '{}');
 let currentCardInfo = null;
 let hasErroredOnCurrent = false;
-let streakCount = 0;
+let streakCount = parseInt(localStorage.getItem('rc-memory-game-streak') || '0', 10);
 
 const STREAK_NAMES = {
   10: 'MATCHING SPREE',
@@ -68,6 +68,7 @@ function updateStreakDisplay() {
 function saveStates() {
   localStorage.setItem('rc-memory-game-cards', JSON.stringify(cardStates));
   localStorage.setItem('rc-memory-game-confusion', JSON.stringify(confusionMatrix));
+  localStorage.setItem('rc-memory-game-streak', String(streakCount));
 }
 
 /**
@@ -431,4 +432,5 @@ function handleChoice(element, isCorrect) {
 }
 
 // Initialize the game on load
+updateStreakDisplay();
 initGame();
