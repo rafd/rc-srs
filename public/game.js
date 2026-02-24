@@ -44,6 +44,44 @@ function saveStates() {
   localStorage.setItem('rc-memory-game-cards', JSON.stringify(cardStates));
 }
 
+/**
+ * Maps the FSRS card mastery to a 1-4 "Grade" scale.
+ * In FSRS, difficulty ranges from 1 (easiest) to 10 (hardest).
+ * We segment it such that:
+ * Grade 4: Difficulty < 3 (Excellent mastery)
+ * Grade 3: Difficulty 3-5 (Good mastery)
+ * Grade 2: Difficulty 5-7 (Fair mastery)
+ * Grade 1: Difficulty > 7 or New (Poor/Starting mastery)
+ */
+function getRatingGrade(card) {
+  if (card.state === 0) return 1; // New cards start at Grade 1
+
+  const d = card.difficulty;
+  if (d < 3) return 4;
+  if (d < 5) return 3;
+  if (d < 7) return 2;
+  return 1;
+}
+
+function getNumCandidates(card, maxAvailable) {
+  const grade = getRatingGrade(card);
+  // Scale candidates: 2, 4, 6, 8 based on grade 1, 2, 3, 4
+  let requested = grade * 2;
+
+  // Ensure we don't exceed available profiles
+  if (requested > maxAvailable) {
+    requested = maxAvailable;
+  }
+
+  // Keep it even
+  if (requested % 2 !== 0) {
+    requested -= 1;
+  }
+
+  // Ensure at least 2
+  return Math.max(2, requested);
+}
+
 function getCard(profileId, type) {
   const key = `${profileId}:${type}`;
   if (!cardStates[key]) {
@@ -68,7 +106,7 @@ async function initGame() {
     // Filter profiles that have both name and image
     allProfiles = data.filter((p) => p.name && p.image_path);
 
-    if (allProfiles.length >= 4) {
+    if (allProfiles.length >= 2) {
       startNewChallenge();
     } else {
       container.innerHTML = '<p>Not enough profiles to start a game.</p>';
@@ -91,7 +129,7 @@ function startNewChallenge() {
         .filter(Boolean);
 
       // Verify we still have all necessary data
-      if (correctPerson && options.length === 4) {
+      if (correctPerson && options.length === active.optionIds.length) {
         currentCardInfo = { profile: correctPerson, type: active.type };
         hasErroredOnCurrent = active.hasErrored || false;
         renderChallenge(active.type, correctPerson, options);
@@ -143,25 +181,29 @@ function startNewChallenge() {
   }
 
   const { profile: correctPerson, type: challengeType } = selected;
+  const targetCard = getCard(correctPerson.id, challengeType);
   currentCardInfo = selected;
   hasErroredOnCurrent = false;
+
+  const numCandidates = getNumCandidates(targetCard, allProfiles.length);
+  const numDistractors = numCandidates - 1;
 
   // Find distractors with same pronouns
   let potentialDistractors = allProfiles.filter(
     (p) => p.id !== correctPerson.id && p.pronouns === correctPerson.pronouns,
   );
 
-  if (potentialDistractors.length < 3) {
+  if (potentialDistractors.length < numDistractors) {
     const others = allProfiles.filter(
       (p) => p.id !== correctPerson.id && p.pronouns !== correctPerson.pronouns,
     );
     const shuffledOthers = others.sort(() => 0.5 - Math.random());
     potentialDistractors = potentialDistractors.concat(
-      shuffledOthers.slice(0, 3 - potentialDistractors.length),
+      shuffledOthers.slice(0, numDistractors - potentialDistractors.length),
     );
   }
 
-  const distractors = potentialDistractors.sort(() => 0.5 - Math.random()).slice(0, 3);
+  const distractors = potentialDistractors.sort(() => 0.5 - Math.random()).slice(0, numDistractors);
   const options = [correctPerson, ...distractors].sort(() => 0.5 - Math.random());
 
   // Save the new challenge to localStorage
