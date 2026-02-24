@@ -167,61 +167,75 @@
             const optionsGrid = document.createElement('div');
             optionsGrid.className = 'options-grid';
 
-            options.forEach(option => {
-                if (type === 'face-to-name') {
-                    const btn = document.createElement('button');
-                    btn.className = 'option-btn';
-                    btn.textContent = option.name;
-                    btn.onclick = () => handleChoice(btn, option.id === correct.id);
-                    optionsGrid.appendChild(btn);
-                } else {
-                    const img = document.createElement('img');
-                    img.src = option.image_path;
-                    img.className = 'image-option';
-                    img.onclick = () => handleChoice(img, option.id === correct.id);
-                    optionsGrid.appendChild(img);
-                }
-            });
-
-            container.appendChild(optionsGrid);
-        }
-
-        function handleChoice(element, isCorrect) {
-            if (isCorrect) {
-                element.classList.add('correct');
-
-                // Update FSRS state
-                const now = new Date();
-                const card = getCard(currentCardInfo.profile.id, currentCardInfo.type);
-                const rating = hasErroredOnCurrent ? Rating.Again : Rating.Good;
-                const schedulingCards = fsrs.repeat(card, now);
-
-                // Update state
-                const key = `${currentCardInfo.profile.id}:${currentCardInfo.type}`;
-                cardStates[key] = schedulingCards[rating].card;
-                saveStates();
-
-                // Disable all options in the grid
-                const allOptions = element.parentElement.children;
-                for (let opt of allOptions) {
-                    opt.onclick = null;
-                    if (opt !== element) {
-                        opt.style.opacity = '0.5';
-                        opt.style.pointerEvents = 'none';
+                        options.forEach(option => {
+                            if (type === 'face-to-name') {
+                                const btn = document.createElement('button');
+                                btn.className = 'option-btn';
+                                btn.textContent = option.name;
+                                btn.dataset.profileId = option.id;
+                                btn.onclick = () => handleChoice(btn, option.id === correct.id);
+                                optionsGrid.appendChild(btn);
+                            } else {
+                                const img = document.createElement('img');
+                                img.src = option.image_path;
+                                img.className = 'image-option';
+                                img.dataset.profileId = option.id;
+                                img.onclick = () => handleChoice(img, option.id === correct.id);
+                                optionsGrid.appendChild(img);
+                            }
+                        });
+            
+                        container.appendChild(optionsGrid);
                     }
-                }
-
-                // Move to next challenge after a short delay
-                setTimeout(startNewChallenge, 1000);
-            } else {
-                element.classList.add('incorrect');
-                element.onclick = null;
-                element.style.pointerEvents = 'none';
-                hasErroredOnCurrent = true;
-            }
-        }
-
-        // Initialize the game on load
+            
+                    function handleChoice(element, isCorrect) {
+                        const now = new Date();
+                        const targetKey = `${currentCardInfo.profile.id}:${currentCardInfo.type}`;
+                        const targetCard = getCard(currentCardInfo.profile.id, currentCardInfo.type);
+            
+                        if (isCorrect) {
+                            element.classList.add('correct');
+                            
+                            // If they got it right on the first try, mark as Good.
+                            // If they already failed, we've already recorded the failure(s).
+                            if (!hasErroredOnCurrent) {
+                                const schedulingCards = fsrs.repeat(targetCard, now);
+                                cardStates[targetKey] = schedulingCards[Rating.Good].card;
+                                saveStates();
+                            }
+            
+                            // Disable all options
+                            const allOptions = element.parentElement.children;
+                            for (let opt of allOptions) {
+                                opt.onclick = null;
+                                if (opt !== element) {
+                                    opt.style.opacity = '0.5';
+                                    opt.style.pointerEvents = 'none';
+                                }
+                            }
+                            
+                            setTimeout(startNewChallenge, 1000);
+                        } else {
+                            element.classList.add('incorrect');
+                            element.onclick = null;
+                            element.style.pointerEvents = 'none';
+                            
+                                            // Record failure for the TARGET card
+                                            const targetScheduling = fsrs.repeat(targetCard, now);
+                                            cardStates[targetKey] = targetScheduling[Rating.Again].card;
+                            
+                                            // Record failure for the DISTRACTOR card for BOTH directions
+                                            const distractorId = element.dataset.profileId;
+                                            ['face-to-name', 'name-to-face'].forEach(dir => {
+                                                const distractorKey = `${distractorId}:${dir}`;
+                                                const distractorCard = getCard(distractorId, dir);
+                                                const distractorScheduling = fsrs.repeat(distractorCard, now);
+                                                cardStates[distractorKey] = distractorScheduling[Rating.Again].card;
+                                            });
+                            
+                                            saveStates();                            hasErroredOnCurrent = true;
+                        }
+                    }        // Initialize the game on load
         initGame();
     </script>
 </body>
