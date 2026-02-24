@@ -80,6 +80,28 @@ async function initGame() {
 }
 
 function startNewChallenge() {
+  // Try to load an existing active challenge first
+  const savedActive = localStorage.getItem('rc-memory-game-active-challenge');
+  if (savedActive) {
+    try {
+      const active = JSON.parse(savedActive);
+      const correctPerson = allProfiles.find((p) => p.id === active.correctId);
+      const options = active.optionIds
+        .map((id) => allProfiles.find((p) => p.id === id))
+        .filter(Boolean);
+
+      // Verify we still have all necessary data
+      if (correctPerson && options.length === 4) {
+        currentCardInfo = { profile: correctPerson, type: active.type };
+        hasErroredOnCurrent = active.hasErrored || false;
+        renderChallenge(active.type, correctPerson, options);
+        return;
+      }
+    } catch (e) {
+      console.error('Error restoring active challenge:', e);
+    }
+  }
+
   const now = new Date();
 
   // 1. Identify all possible cards (2 per profile)
@@ -140,8 +162,18 @@ function startNewChallenge() {
   }
 
   const distractors = potentialDistractors.sort(() => 0.5 - Math.random()).slice(0, 3);
-
   const options = [correctPerson, ...distractors].sort(() => 0.5 - Math.random());
+
+  // Save the new challenge to localStorage
+  localStorage.setItem(
+    'rc-memory-game-active-challenge',
+    JSON.stringify({
+      correctId: correctPerson.id,
+      type: challengeType,
+      optionIds: options.map((o) => o.id),
+      hasErrored: false,
+    }),
+  );
 
   renderChallenge(challengeType, correctPerson, options);
 }
@@ -191,6 +223,7 @@ function handleChoice(element, isCorrect) {
 
   if (isCorrect) {
     element.classList.add('correct');
+    localStorage.removeItem('rc-memory-game-active-challenge');
 
     // If they got it right on the first try, mark as Good.
     // If they already failed, we've already recorded the failure(s).
@@ -241,6 +274,14 @@ function handleChoice(element, isCorrect) {
 
     saveStates();
     hasErroredOnCurrent = true;
+
+    // Update active challenge in localStorage to persist the error state
+    const savedActive = localStorage.getItem('rc-memory-game-active-challenge');
+    if (savedActive) {
+      const active = JSON.parse(savedActive);
+      active.hasErrored = true;
+      localStorage.setItem('rc-memory-game-active-challenge', JSON.stringify(active));
+    }
   }
 }
 
