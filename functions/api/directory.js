@@ -37,7 +37,9 @@ export async function onRequestGet({ env }) {
       totalCount = data[0].results_count;
     }
 
-    allProfiles = allProfiles.concat(data);
+    allProfiles = allProfiles.concat(
+      data.map(({ id, name, image_path, pronouns }) => ({ id, name, image_path, pronouns })),
+    );
     offset += limit;
 
     if (data.length < limit) break;
