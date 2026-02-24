@@ -71,42 +71,16 @@ function saveStates() {
   localStorage.setItem('rc-memory-game-streak', String(streakCount));
 }
 
-/**
- * Maps the FSRS card mastery to a 1-4 "Grade" scale.
- * In FSRS, difficulty ranges from 1 (easiest) to 10 (hardest).
- * We segment it such that:
- * Grade 4: Difficulty < 3 (Excellent mastery)
- * Grade 3: Difficulty 3-5 (Good mastery)
- * Grade 2: Difficulty 5-7 (Fair mastery)
- * Grade 1: Difficulty > 7 or New (Poor/Starting mastery)
- */
-function getRatingGrade(card) {
-  if (card.state === 0) return 1; // New cards start at Grade 1
-
-  const d = card.difficulty;
-  if (d < 3) return 4;
-  if (d < 5) return 3;
-  if (d < 7) return 2;
-  return 1;
-}
-
+// In FSRS, difficulty ranges from 1 (easiest) to 10 (hardest).
+// New or hard cards get fewer candidates; well-known cards get more.
 function getNumCandidates(card, maxAvailable) {
-  const grade = getRatingGrade(card);
-  // Scale candidates: 2, 4, 6, 8 based on grade 1, 2, 3, 4
-  let requested = grade * 2;
+  const d = card.difficulty;
+  let requested;
+  if (card.state === 0 || d >= 7) requested = 2;
+  else if (d >= 5) requested = 4;
+  else requested = 6;
 
-  // Ensure we don't exceed available profiles
-  if (requested > maxAvailable) {
-    requested = maxAvailable;
-  }
-
-  // Keep it even
-  if (requested % 2 !== 0) {
-    requested -= 1;
-  }
-
-  // Ensure at least 2
-  return Math.max(2, requested);
+  return Math.min(requested, maxAvailable);
 }
 
 function getCard(profileId, type) {
