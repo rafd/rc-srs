@@ -9,7 +9,7 @@ app.use('/scripts/ts-fsrs', express.static('node_modules/ts-fsrs/dist'));
 
 let profileCache = null;
 let lastFetched = 0;
-const CACHE_DURATION = 3600000; // 1 hour
+const CACHE_DURATION = 6 * 60 * 60 * 1000; // 6 hours
 const CACHE_FILE = 'profiles_cache.json';
 
 const fetchPage = (token, offset, limit) => {
