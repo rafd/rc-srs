@@ -249,9 +249,9 @@ function renderChallenge(type, correct, options) {
   targetDiv.className = 'challenge-target';
 
   if (type === 'face-to-name') {
-    targetDiv.innerHTML = `<img src="${correct.image_path}" alt="Who is this?">`;
+    targetDiv.innerHTML = `<img src="${correct.image_path}" alt="${getShortName(correct.name)}">`;
   } else {
-    targetDiv.innerHTML = `<div class="target-name">Who is ${getShortName(correct.name)}?</div>`;
+    targetDiv.innerHTML = `<div class="target-name">${getShortName(correct.name)}</div>`;
   }
   container.appendChild(targetDiv);
 
