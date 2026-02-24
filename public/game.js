@@ -117,6 +117,15 @@ async function initGame() {
   }
 }
 
+function getShortName(fullName) {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length <= 1) return fullName;
+  // "First Last" -> "First"
+  if (parts.length === 2) return parts[0];
+  // "First Middle Last" -> "First Middle" (Intuitive for double names like "Mary Jo")
+  return parts.slice(0, -1).join(' ');
+}
+
 function startNewChallenge() {
   // Try to load an existing active challenge first
   const savedActive = localStorage.getItem('rc-memory-game-active-challenge');
@@ -188,22 +197,34 @@ function startNewChallenge() {
   const numCandidates = getNumCandidates(targetCard, allProfiles.length);
   const numDistractors = numCandidates - 1;
 
-  // Find distractors with same pronouns
-  let potentialDistractors = allProfiles.filter(
-    (p) => p.id !== correctPerson.id && p.pronouns === correctPerson.pronouns,
-  );
+  // Find distractors with unique short names
+  const correctShortName = getShortName(correctPerson.name);
+  const shuffledProfiles = [...allProfiles].sort(() => 0.5 - Math.random());
+  const distractors = [];
+  const usedShortNames = new Set([correctShortName]);
 
-  if (potentialDistractors.length < numDistractors) {
-    const others = allProfiles.filter(
-      (p) => p.id !== correctPerson.id && p.pronouns !== correctPerson.pronouns,
-    );
-    const shuffledOthers = others.sort(() => 0.5 - Math.random());
-    potentialDistractors = potentialDistractors.concat(
-      shuffledOthers.slice(0, numDistractors - potentialDistractors.length),
-    );
+  // Priority 1: Same pronouns + Unique Short Name
+  for (const p of shuffledProfiles) {
+    if (distractors.length >= numDistractors) break;
+    if (p.id === correctPerson.id) continue;
+    const sName = getShortName(p.name);
+    if (p.pronouns === correctPerson.pronouns && !usedShortNames.has(sName)) {
+      distractors.push(p);
+      usedShortNames.add(sName);
+    }
   }
 
-  const distractors = potentialDistractors.sort(() => 0.5 - Math.random()).slice(0, numDistractors);
+  // Priority 2: Fill remaining with any profile + Unique Short Name
+  for (const p of shuffledProfiles) {
+    if (distractors.length >= numDistractors) break;
+    if (p.id === correctPerson.id || distractors.some((d) => d.id === p.id)) continue;
+    const sName = getShortName(p.name);
+    if (!usedShortNames.has(sName)) {
+      distractors.push(p);
+      usedShortNames.add(sName);
+    }
+  }
+
   const options = [correctPerson, ...distractors].sort(() => 0.5 - Math.random());
 
   // Save the new challenge to localStorage
@@ -230,7 +251,7 @@ function renderChallenge(type, correct, options) {
   if (type === 'face-to-name') {
     targetDiv.innerHTML = `<img src="${correct.image_path}" alt="Who is this?">`;
   } else {
-    targetDiv.innerHTML = `<div class="target-name">Who is ${correct.name}?</div>`;
+    targetDiv.innerHTML = `<div class="target-name">Who is ${getShortName(correct.name)}?</div>`;
   }
   container.appendChild(targetDiv);
 
@@ -241,7 +262,7 @@ function renderChallenge(type, correct, options) {
     if (type === 'face-to-name') {
       const btn = document.createElement('button');
       btn.className = 'option-btn';
-      btn.textContent = option.name;
+      btn.textContent = getShortName(option.name);
       btn.dataset.profileId = option.id;
       btn.onclick = () => handleChoice(btn, option.id === correct.id);
       optionsGrid.appendChild(btn);
