@@ -258,26 +258,56 @@ function renderChallenge(type, correct, options) {
   const optionsGrid = document.createElement('div');
   optionsGrid.className = 'options-grid';
 
-  options.forEach((option) => {
+  options.forEach((option, index) => {
+    const label = index + 1;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'option-wrapper';
+
     if (type === 'face-to-name') {
       const btn = document.createElement('button');
       btn.className = 'option-btn';
-      btn.textContent = getShortName(option.name);
+      btn.innerHTML = `<span class="option-key">${label}</span> ${getShortName(option.name)}`;
       btn.dataset.profileId = option.id;
       btn.onclick = () => handleChoice(btn, option.id === correct.id);
-      optionsGrid.appendChild(btn);
+      wrapper.appendChild(btn);
     } else {
+      const imgWrapper = document.createElement('div');
+      imgWrapper.className = 'image-option-wrapper';
+      imgWrapper.onclick = () => handleChoice(imgWrapper, option.id === correct.id);
+      imgWrapper.dataset.profileId = option.id;
+
       const img = document.createElement('img');
       img.src = option.image_path;
       img.className = 'image-option';
-      img.dataset.profileId = option.id;
-      img.onclick = () => handleChoice(img, option.id === correct.id);
-      optionsGrid.appendChild(img);
+
+      const keyLabel = document.createElement('div');
+      keyLabel.className = 'image-key-label';
+      keyLabel.textContent = label;
+
+      imgWrapper.appendChild(img);
+      imgWrapper.appendChild(keyLabel);
+      wrapper.appendChild(imgWrapper);
     }
+    optionsGrid.appendChild(wrapper);
   });
 
   container.appendChild(optionsGrid);
 }
+
+// Add global keyboard listener
+window.addEventListener('keydown', (e) => {
+  const key = parseInt(e.key);
+  if (key >= 1 && key <= 8) {
+    const wrappers = document.querySelectorAll('.option-wrapper');
+    const target = wrappers[key - 1];
+    if (target) {
+      const clickTarget = target.querySelector('.option-btn, .image-option-wrapper');
+      if (clickTarget && clickTarget.onclick) {
+        clickTarget.click();
+      }
+    }
+  }
+});
 
 function handleChoice(element, isCorrect) {
   const now = new Date();
@@ -305,16 +335,19 @@ function handleChoice(element, isCorrect) {
     }
 
     // Disable all options
-    const allOptions = element.parentElement.children;
-    for (let opt of allOptions) {
-      opt.onclick = null;
-      if (opt !== element) {
-        opt.style.opacity = '0.5';
-        opt.style.pointerEvents = 'none';
+    const allWrappers = document.querySelectorAll('.option-wrapper');
+    allWrappers.forEach((wrap) => {
+      const opt = wrap.querySelector('.option-btn, .image-option-wrapper');
+      if (opt) {
+        opt.onclick = null;
+        if (opt !== element) {
+          opt.style.opacity = '0.5';
+          opt.style.pointerEvents = 'none';
+        }
       }
-    }
+    });
 
-    setTimeout(startNewChallenge, 1000);
+    setTimeout(startNewChallenge, 400);
   } else {
     element.classList.add('incorrect');
     element.onclick = null;
