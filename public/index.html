@@ -63,10 +63,30 @@
             const container = document.getElementById('game-content');
             const challengeType = Math.random() > 0.5 ? 'face-to-name' : 'name-to-face';
             
-            // Randomly pick a correct person and 3 distractors
-            const shuffled = [...allProfiles].sort(() => 0.5 - Math.random());
-            const correctPerson = shuffled[0];
-            const distractors = shuffled.slice(1, 4);
+            // Pick a random correct person
+            const correctPerson = allProfiles[Math.floor(Math.random() * allProfiles.length)];
+            
+            // Find distractors with same pronouns
+            let potentialDistractors = allProfiles.filter(p => 
+                p.id !== correctPerson.id && 
+                p.pronouns === correctPerson.pronouns
+            );
+
+            // If not enough same-pronoun distractors, supplement with others
+            if (potentialDistractors.length < 3) {
+                const others = allProfiles.filter(p => 
+                    p.id !== correctPerson.id && 
+                    p.pronouns !== correctPerson.pronouns
+                );
+                const shuffledOthers = others.sort(() => 0.5 - Math.random());
+                potentialDistractors = potentialDistractors.concat(shuffledOthers.slice(0, 3 - potentialDistractors.length));
+            }
+
+            // Randomly select 3 from the potential distractors
+            const distractors = potentialDistractors
+                .sort(() => 0.5 - Math.random())
+                .slice(0, 3);
+
             const options = [correctPerson, ...distractors].sort(() => 0.5 - Math.random());
 
             renderChallenge(challengeType, correctPerson, options);
