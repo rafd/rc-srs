@@ -130,8 +130,8 @@ async function initGame() {
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const data = await response.json();
 
-    // Filter profiles that have both name and image
-    allProfiles = data.filter((p) => p.name && p.image_path);
+    // Filter profiles that have both first_name and image
+    allProfiles = data.filter((p) => p.first_name && p.image_path);
 
     if (allProfiles.length >= 2) {
       startNewChallenge();
@@ -142,15 +142,6 @@ async function initGame() {
     console.error('Fetch error:', error);
     container.innerHTML = `<p>Error loading data: ${error.message}</p>`;
   }
-}
-
-function getShortName(fullName) {
-  const parts = fullName.trim().split(/\s+/);
-  if (parts.length <= 1) return fullName;
-  // "First Last" -> "First"
-  if (parts.length === 2) return parts[0];
-  // "First Middle Last" -> "First Middle" (Intuitive for double names like "Mary Jo")
-  return parts.slice(0, -1).join(' ');
 }
 
 function startNewChallenge() {
@@ -224,11 +215,10 @@ function startNewChallenge() {
   const numCandidates = getNumCandidates(targetCard, allProfiles.length);
   const numDistractors = numCandidates - 1;
 
-  // Find distractors with unique short names
-  const correctShortName = getShortName(correctPerson.name);
+  // Find distractors with unique first names
   const shuffledProfiles = [...allProfiles].sort(() => 0.5 - Math.random());
   const distractors = [];
-  const usedShortNames = new Set([correctShortName]);
+  const usedFirstNames = new Set([correctPerson.first_name]);
 
   // Priority 0: Known Confusions (profiles previously mistaken for the target)
   const personConfusion = confusionMatrix[correctPerson.id] || {};
@@ -240,32 +230,29 @@ function startNewChallenge() {
   for (const p of confusionProfiles) {
     if (distractors.length >= numDistractors) break;
     if (p.id === correctPerson.id) continue;
-    const sName = getShortName(p.name);
-    if (!usedShortNames.has(sName)) {
+    if (!usedFirstNames.has(p.first_name)) {
       distractors.push(p);
-      usedShortNames.add(sName);
+      usedFirstNames.add(p.first_name);
     }
   }
 
-  // Priority 1: Same pronouns + Unique Short Name
+  // Priority 1: Same pronouns + Unique First Name
   for (const p of shuffledProfiles) {
     if (distractors.length >= numDistractors) break;
     if (p.id === correctPerson.id || distractors.some((d) => d.id === p.id)) continue;
-    const sName = getShortName(p.name);
-    if (p.pronouns === correctPerson.pronouns && !usedShortNames.has(sName)) {
+    if (p.pronouns === correctPerson.pronouns && !usedFirstNames.has(p.first_name)) {
       distractors.push(p);
-      usedShortNames.add(sName);
+      usedFirstNames.add(p.first_name);
     }
   }
 
-  // Priority 2: Fill remaining with any profile + Unique Short Name
+  // Priority 2: Fill remaining with any profile + Unique First Name
   for (const p of shuffledProfiles) {
     if (distractors.length >= numDistractors) break;
     if (p.id === correctPerson.id || distractors.some((d) => d.id === p.id)) continue;
-    const sName = getShortName(p.name);
-    if (!usedShortNames.has(sName)) {
+    if (!usedFirstNames.has(p.first_name)) {
       distractors.push(p);
-      usedShortNames.add(sName);
+      usedFirstNames.add(p.first_name);
     }
   }
 
@@ -293,9 +280,9 @@ function renderChallenge(type, correct, options) {
   targetDiv.className = 'challenge-target';
 
   if (type === 'face-to-name') {
-    targetDiv.innerHTML = `<img src="${correct.image_path}" alt="${getShortName(correct.name)}">`;
+    targetDiv.innerHTML = `<img src="${correct.image_path}" alt="${correct.first_name}">`;
   } else {
-    targetDiv.innerHTML = `<div class="target-name">${getShortName(correct.name)}</div>`;
+    targetDiv.innerHTML = `<div class="target-name">${correct.first_name}</div>`;
   }
   container.appendChild(targetDiv);
 
@@ -310,7 +297,7 @@ function renderChallenge(type, correct, options) {
     if (type === 'face-to-name') {
       const btn = document.createElement('button');
       btn.className = 'option-btn';
-      btn.innerHTML = `<span class="option-key">${label}</span> ${getShortName(option.name)}`;
+      btn.innerHTML = `<span class="option-key">${label}</span> ${option.first_name}`;
       btn.dataset.profileId = option.id;
       btn.onclick = () => handleChoice(btn, option.id === correct.id);
       wrapper.appendChild(btn);

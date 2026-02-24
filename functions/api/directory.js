@@ -38,7 +38,7 @@ export async function onRequestGet({ env }) {
     }
 
     allProfiles = allProfiles.concat(
-      data.map(({ id, name, image_path, pronouns }) => ({ id, name, image_path, pronouns })),
+      data.map(({ id, first_name, image_path, pronouns }) => ({ id, first_name, image_path, pronouns })),
     );
     offset += limit;
 
