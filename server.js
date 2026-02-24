@@ -6,6 +6,10 @@ const port = 3000;
 
 app.use(express.static('public'));
 
+let profileCache = null;
+let lastFetched = 0;
+const CACHE_DURATION = 3600000; // 1 hour
+
 const fetchPage = (token, offset, limit) => {
   return new Promise((resolve, reject) => {
     const options = {
@@ -37,6 +41,12 @@ const fetchPage = (token, offset, limit) => {
 
 app.get('/api/directory', async (req, res) => {
   try {
+    const now = Date.now();
+    if (profileCache && (now - lastFetched < CACHE_DURATION)) {
+      console.log('Serving directory from cache');
+      return res.json(profileCache);
+    }
+
     const token = fs.readFileSync('tok', 'utf8').trim();
     let allProfiles = [];
     let offset = 0;
@@ -62,6 +72,8 @@ app.get('/api/directory', async (req, res) => {
       if (data.length < limit) break;
     }
 
+    profileCache = allProfiles;
+    lastFetched = now;
     res.json(allProfiles);
   } catch (error) {
     console.error('Error fetching directory:', error);
