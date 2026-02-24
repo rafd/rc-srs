@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RC Directory</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-wrap: wrap; justify-content: center; background-color: #f0f0f0; }
+        .card { background: white; border-radius: 8px; margin: 10px; padding: 15px; width: 200px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
+        .card img { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; }
+        .name { font-weight: bold; font-size: 1.2em; margin-top: 10px; }
+        .pronouns { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div id="directory">Loading...</div>
+
+    <script>
+        const token = 'b503f286eedc22cf695e50cea5f2092d1749f9e0713192ac8456df804f92a4ae';
+        const url = 'https://www.recurse.com/api/v1/profiles?scope=current';
+        const proxyUrl = '/api/directory';
+
+        async function fetchDirectory() {
+            const directoryDiv = document.getElementById('directory');
+            
+            // Try frontend fetch first
+            try {
+                console.log('Attempting frontend fetch...');
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    renderDirectory(data);
+                    return;
+                }
+                console.warn('Frontend fetch failed or blocked by CORS.');
+            } catch (error) {
+                console.warn('Frontend fetch error:', error);
+            }
+
+            // Fallback to backend proxy
+            try {
+                console.log('Attempting backend proxy fetch...');
+                const response = await fetch(proxyUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                renderDirectory(data);
+            } catch (error) {
+                console.error('Fetch error:', error);
+                directoryDiv.innerHTML = `
+                    <p>Error fetching directory.</p>
+                    <p>Error details: ${error.message}</p>
+                `;
+            }
+        }
+
+        function renderDirectory(data) {
+            const directoryDiv = document.getElementById('directory');
+            directoryDiv.innerHTML = '';
+
+            data.forEach(person => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                
+                const img = document.createElement('img');
+                img.src = person.image_path || 'https://via.placeholder.com/150';
+                img.alt = person.name;
+                
+                const name = document.createElement('div');
+                name.className = 'name';
+                name.textContent = person.name;
+                
+                const pronouns = document.createElement('div');
+                pronouns.className = 'pronouns';
+                pronouns.textContent = person.pronouns || '';
+                
+                card.appendChild(img);
+                card.appendChild(name);
+                card.appendChild(pronouns);
+                directoryDiv.appendChild(card);
+            });
+        }
+
+        fetchDirectory();
+    </script>
+</body>
+</html>
