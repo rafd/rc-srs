@@ -5,6 +5,7 @@ const app = express();
 const port = 3000;
 
 app.use(express.static('public'));
+app.use('/scripts/ts-fsrs', express.static('node_modules/ts-fsrs/dist'));
 
 let profileCache = null;
 let lastFetched = 0;
