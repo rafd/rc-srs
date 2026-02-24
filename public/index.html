@@ -3,90 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RC Directory</title>
+    <title>RC Learning Game</title>
     <style>
-        body { font-family: sans-serif; display: flex; flex-wrap: wrap; justify-content: center; background-color: #f0f0f0; }
+        body { font-family: sans-serif; background-color: #f0f0f0; margin: 0; padding: 20px; }
+        nav { margin-bottom: 20px; text-align: center; }
+        nav button { padding: 10px 20px; font-size: 16px; cursor: pointer; margin: 0 5px; }
+        
+        #directory { display: flex; flex-wrap: wrap; justify-content: center; }
         .card { background: white; border-radius: 8px; margin: 10px; padding: 15px; width: 200px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
         .card img { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; }
         .name { font-weight: bold; font-size: 1.2em; margin-top: 10px; }
         .pronouns { color: #666; font-style: italic; }
+
+        #game-container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; display: none; }
+        .challenge-target { margin-bottom: 20px; }
+        .challenge-target img { width: 200px; height: 200px; border-radius: 8px; object-fit: cover; }
+        .challenge-target .target-name { font-size: 2em; font-weight: bold; }
+        
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .option-btn { padding: 15px; font-size: 16px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px; background: #fff; transition: background 0.2s; }
+        .option-btn:hover:not(:disabled) { background: #f9f9f9; }
+        .option-btn.correct { background: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .option-btn.incorrect { background: #f8d7da; border-color: #f5c6cb; color: #721c24; cursor: not-allowed; opacity: 0.6; }
+        
+        .image-option { width: 100%; height: 150px; object-fit: cover; border-radius: 4px; border: 2px solid transparent; cursor: pointer; }
+        .image-option:hover { border-color: #007bff; }
+        .image-option.correct { border-color: #28a745; background: #d4edda; }
+        .image-option.incorrect { border-color: #dc3545; opacity: 0.4; cursor: not-allowed; }
+
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
+    <nav>
+        <button onclick="showMode('directory')">Directory</button>
+        <button onclick="showMode('game')">Start Game</button>
+    </nav>
+
     <div id="directory">Loading...</div>
 
+    <div id="game-container">
+        <div id="game-content">
+            <!-- Game content will be injected here -->
+        </div>
+    </div>
+
     <script>
-        const token = 'b503f286eedc22cf695e50cea5f2092d1749f9e0713192ac8456df804f92a4ae';
-        const url = 'https://www.recurse.com/api/v1/profiles?scope=current';
-        const proxyUrl = '/api/directory';
+        let allProfiles = [];
+        let currentMode = 'directory';
 
         async function fetchDirectory() {
             const directoryDiv = document.getElementById('directory');
-            
-            // Try frontend fetch first
-            try {
-                console.log('Attempting frontend fetch...');
-                const response = await fetch(url, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    renderDirectory(data);
-                    return;
-                }
-                console.warn('Frontend fetch failed or blocked by CORS.');
-            } catch (error) {
-                console.warn('Frontend fetch error:', error);
-            }
+            const proxyUrl = '/api/directory';
 
-            // Fallback to backend proxy
             try {
-                console.log('Attempting backend proxy fetch...');
                 const response = await fetch(proxyUrl);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                renderDirectory(data);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                allProfiles = await response.json();
+                // Filter profiles that have both name and image
+                allProfiles = allProfiles.filter(p => p.name && p.image_path);
+                renderDirectory(allProfiles);
             } catch (error) {
                 console.error('Fetch error:', error);
-                directoryDiv.innerHTML = `
-                    <p>Error fetching directory.</p>
-                    <p>Error details: ${error.message}</p>
-                `;
+                directoryDiv.innerHTML = `<p>Error fetching directory: ${error.message}</p>`;
             }
         }
 
         function renderDirectory(data) {
             const directoryDiv = document.getElementById('directory');
             directoryDiv.innerHTML = '';
-
             data.forEach(person => {
                 const card = document.createElement('div');
                 card.className = 'card';
-                
-                const img = document.createElement('img');
-                img.src = person.image_path || 'https://via.placeholder.com/150';
-                img.alt = person.name;
-                
-                const name = document.createElement('div');
-                name.className = 'name';
-                name.textContent = person.name;
-                
-                const pronouns = document.createElement('div');
-                pronouns.className = 'pronouns';
-                pronouns.textContent = person.pronouns || '';
-                
-                card.appendChild(img);
-                card.appendChild(name);
-                card.appendChild(pronouns);
+                card.innerHTML = `
+                    <img src="${person.image_path}" alt="${person.name}">
+                    <div class="name">${person.name}</div>
+                    <div class="pronouns">${person.pronouns || ''}</div>
+                `;
                 directoryDiv.appendChild(card);
             });
+        }
+
+        function showMode(mode) {
+            currentMode = mode;
+            const dirDiv = document.getElementById('directory');
+            const gameDiv = document.getElementById('game-container');
+            
+            if (mode === 'directory') {
+                dirDiv.classList.remove('hidden');
+                gameDiv.style.display = 'none';
+            } else {
+                dirDiv.classList.add('hidden');
+                gameDiv.style.display = 'block';
+                startNewChallenge();
+            }
+        }
+
+        function startNewChallenge() {
+            if (allProfiles.length < 4) {
+                document.getElementById('game-content').innerHTML = '<p>Not enough profiles to start a game.</p>';
+                return;
+            }
+
+            const challengeType = Math.random() > 0.5 ? 'face-to-name' : 'name-to-face';
+            const shuffled = [...allProfiles].sort(() => 0.5 - Math.random());
+            const correctPerson = shuffled[0];
+            const distractors = shuffled.slice(1, 4);
+            const options = [correctPerson, ...distractors].sort(() => 0.5 - Math.random());
+
+            renderChallenge(challengeType, correctPerson, options);
+        }
+
+        function renderChallenge(type, correct, options) {
+            const container = document.getElementById('game-content');
+            container.innerHTML = '';
+
+            const targetDiv = document.createElement('div');
+            targetDiv.className = 'challenge-target';
+
+            if (type === 'face-to-name') {
+                targetDiv.innerHTML = `<img src="${correct.image_path}" alt="Who is this?">`;
+            } else {
+                targetDiv.innerHTML = `<div class="target-name">Who is ${correct.name}?</div>`;
+            }
+            container.appendChild(targetDiv);
+
+            const optionsGrid = document.createElement('div');
+            optionsGrid.className = 'options-grid';
+
+            options.forEach(option => {
+                if (type === 'face-to-name') {
+                    const btn = document.createElement('button');
+                    btn.className = 'option-btn';
+                    btn.textContent = option.name;
+                    btn.onclick = () => handleChoice(btn, option.id === correct.id);
+                    optionsGrid.appendChild(btn);
+                } else {
+                    const img = document.createElement('img');
+                    img.src = option.image_path;
+                    img.className = 'image-option';
+                    img.onclick = () => handleChoice(img, option.id === correct.id);
+                    optionsGrid.appendChild(img);
+                }
+            });
+
+            container.appendChild(optionsGrid);
+        }
+
+        function handleChoice(element, isCorrect) {
+            if (isCorrect) {
+                element.classList.add('correct');
+                // Disable all options
+                const allOptions = element.parentElement.children;
+                for (let opt of allOptions) {
+                    opt.onclick = null;
+                    if (opt !== element) opt.style.opacity = '0.5';
+                }
+                
+                // Progress after a delay
+                setTimeout(() => {
+                    startNewChallenge();
+                }, 1000);
+            } else {
+                element.classList.add('incorrect');
+                element.onclick = null; // Disable clicking it again
+            }
         }
 
         fetchDirectory();
