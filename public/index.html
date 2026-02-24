@@ -33,8 +33,30 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
+        import { FSRS, Rating, generatorParameters, createEmptyCard } from 'https://esm.sh/ts-fsrs@4.3.1';
+
+        const fsrs = new FSRS(generatorParameters());
         let allProfiles = [];
+        let cardStates = JSON.parse(localStorage.getItem('rc-memory-game-cards') || '{}');
+        let currentCardInfo = null;
+        let hasErroredOnCurrent = false;
+
+        function saveStates() {
+            localStorage.setItem('rc-memory-game-cards', JSON.stringify(cardStates));
+        }
+
+        function getCard(profileId, type) {
+            const key = `${profileId}:${type}`;
+            if (!cardStates[key]) {
+                cardStates[key] = createEmptyCard();
+            }
+            // Ensure dates are actual Date objects after JSON.parse
+            const card = cardStates[key];
+            card.due = new Date(card.due);
+            card.last_review = card.last_review ? new Date(card.last_review) : undefined;
+            return card;
+        }
 
         async function initGame() {
             const container = document.getElementById('game-content');
@@ -60,19 +82,56 @@
         }
 
         function startNewChallenge() {
-            const container = document.getElementById('game-content');
-            const challengeType = Math.random() > 0.5 ? 'face-to-name' : 'name-to-face';
+            const now = new Date();
             
-            // Pick a random correct person
-            const correctPerson = allProfiles[Math.floor(Math.random() * allProfiles.length)];
-            
+            // 1. Identify all possible cards (2 per profile)
+            const allPossibleCards = [];
+            allProfiles.forEach(p => {
+                allPossibleCards.push({ profile: p, type: 'face-to-name' });
+                allPossibleCards.push({ profile: p, type: 'name-to-face' });
+            });
+
+            // 2. Find due cards or new cards
+            const dueCards = allPossibleCards.filter(c => {
+                const card = getCard(c.profile.id, c.type);
+                return card.due <= now && card.state !== 0; // State 0 is New
+            });
+
+            const newCards = allPossibleCards.filter(c => {
+                const card = getCard(c.profile.id, c.type);
+                return card.state === 0;
+            });
+
+            let selected;
+            if (dueCards.length > 0) {
+                // Pick the most overdue card
+                selected = dueCards.sort((a, b) => {
+                    const cardA = getCard(a.profile.id, a.type);
+                    const cardB = getCard(b.profile.id, b.type);
+                    return cardA.due - cardB.due;
+                })[0];
+            } else if (newCards.length > 0) {
+                // Pick a random new card
+                selected = newCards[Math.floor(Math.random() * newCards.length)];
+            } else {
+                // Everything is reviewed and not yet due, pick the one due soonest
+                selected = allPossibleCards.sort((a, b) => {
+                    const cardA = getCard(a.profile.id, a.type);
+                    const cardB = getCard(b.profile.id, b.type);
+                    return cardA.due - cardB.due;
+                })[0];
+            }
+
+            const { profile: correctPerson, type: challengeType } = selected;
+            currentCardInfo = selected;
+            hasErroredOnCurrent = false;
+
             // Find distractors with same pronouns
             let potentialDistractors = allProfiles.filter(p => 
                 p.id !== correctPerson.id && 
                 p.pronouns === correctPerson.pronouns
             );
 
-            // If not enough same-pronoun distractors, supplement with others
             if (potentialDistractors.length < 3) {
                 const others = allProfiles.filter(p => 
                     p.id !== correctPerson.id && 
@@ -82,7 +141,6 @@
                 potentialDistractors = potentialDistractors.concat(shuffledOthers.slice(0, 3 - potentialDistractors.length));
             }
 
-            // Randomly select 3 from the potential distractors
             const distractors = potentialDistractors
                 .sort(() => 0.5 - Math.random())
                 .slice(0, 3);
@@ -131,6 +189,18 @@
         function handleChoice(element, isCorrect) {
             if (isCorrect) {
                 element.classList.add('correct');
+                
+                // Update FSRS state
+                const now = new Date();
+                const card = getCard(currentCardInfo.profile.id, currentCardInfo.type);
+                const rating = hasErroredOnCurrent ? Rating.Again : Rating.Good;
+                const schedulingCards = fsrs.repeat(card, now);
+                
+                // Update state
+                const key = `${currentCardInfo.profile.id}:${currentCardInfo.type}`;
+                cardStates[key] = schedulingCards[rating].card;
+                saveStates();
+
                 // Disable all options in the grid
                 const allOptions = element.parentElement.children;
                 for (let opt of allOptions) {
@@ -147,6 +217,7 @@
                 element.classList.add('incorrect');
                 element.onclick = null;
                 element.style.pointerEvents = 'none';
+                hasErroredOnCurrent = true;
             }
         }
 
