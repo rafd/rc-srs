@@ -18,13 +18,13 @@ const fetchPage = (token, offset, limit) => {
       path: `/api/v1/profiles?scope=current&limit=${limit}&offset=${offset}`,
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`
-      }
+        Authorization: `Bearer ${token}`,
+      },
     };
 
     const req = https.request(options, (res) => {
       let data = '';
-      res.on('data', (chunk) => data += chunk);
+      res.on('data', (chunk) => (data += chunk));
       res.on('end', () => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve(JSON.parse(data));
@@ -42,7 +42,7 @@ const fetchPage = (token, offset, limit) => {
 app.get('/api/directory', async (req, res) => {
   try {
     const now = Date.now();
-    if (profileCache && (now - lastFetched < CACHE_DURATION)) {
+    if (profileCache && now - lastFetched < CACHE_DURATION) {
       console.log('Serving directory from cache');
       return res.json(profileCache);
     }
@@ -56,7 +56,7 @@ app.get('/api/directory', async (req, res) => {
     while (offset < totalCount) {
       console.log(`Fetching profiles starting at offset ${offset}...`);
       const data = await fetchPage(token, offset, limit);
-      
+
       if (data.length === 0) break;
 
       // The RC API includes results_count in the profile objects
