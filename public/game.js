@@ -1,4 +1,4 @@
-import { FSRS, Rating, generatorParameters, createEmptyCard } from '/scripts/ts-fsrs/index.mjs';
+import { FSRS, Rating, generatorParameters, createEmptyCard } from 'https://esm.sh/ts-fsrs@5.2.3';
 
 const fsrs = new FSRS(generatorParameters());
 let allProfiles = [];
