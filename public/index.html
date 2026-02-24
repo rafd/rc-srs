@@ -37,10 +37,13 @@
         margin-bottom: 30px;
       }
       .challenge-target img {
-        width: 250px;
-        height: 250px;
+        width: 100%;
+        max-width: 300px;
+        height: auto;
+        aspect-ratio: 1 / 1;
         border-radius: 12px;
-        object-fit: cover;
+        object-fit: contain;
+        background-color: #f8f9fa;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       }
       .challenge-target .target-name {
@@ -84,8 +87,9 @@
 
       .image-option {
         width: 100%;
-        height: 180px;
-        object-fit: cover;
+        aspect-ratio: 1 / 1;
+        object-fit: contain;
+        background-color: #f8f9fa;
         border-radius: 8px;
         border: 4px solid transparent;
         cursor: pointer;
