@@ -3,6 +3,7 @@ import { FSRS, Rating, generatorParameters, createEmptyCard } from '/scripts/ts-
 const fsrs = new FSRS(generatorParameters());
 let allProfiles = [];
 let cardStates = JSON.parse(localStorage.getItem('rc-memory-game-cards') || '{}');
+let confusionMatrix = JSON.parse(localStorage.getItem('rc-memory-game-confusion') || '{}');
 let currentCardInfo = null;
 let hasErroredOnCurrent = false;
 let streakCount = 0;
@@ -66,6 +67,7 @@ function updateStreakDisplay() {
 
 function saveStates() {
   localStorage.setItem('rc-memory-game-cards', JSON.stringify(cardStates));
+  localStorage.setItem('rc-memory-game-confusion', JSON.stringify(confusionMatrix));
 }
 
 /**
@@ -227,10 +229,27 @@ function startNewChallenge() {
   const distractors = [];
   const usedShortNames = new Set([correctShortName]);
 
+  // Priority 0: Known Confusions (profiles previously mistaken for the target)
+  const personConfusion = confusionMatrix[correctPerson.id] || {};
+  const confusionProfiles = Object.entries(personConfusion)
+    .sort(([, a], [, b]) => b - a)
+    .map(([id]) => allProfiles.find((p) => String(p.id) === id))
+    .filter(Boolean);
+
+  for (const p of confusionProfiles) {
+    if (distractors.length >= numDistractors) break;
+    if (p.id === correctPerson.id) continue;
+    const sName = getShortName(p.name);
+    if (!usedShortNames.has(sName)) {
+      distractors.push(p);
+      usedShortNames.add(sName);
+    }
+  }
+
   // Priority 1: Same pronouns + Unique Short Name
   for (const p of shuffledProfiles) {
     if (distractors.length >= numDistractors) break;
-    if (p.id === correctPerson.id) continue;
+    if (p.id === correctPerson.id || distractors.some((d) => d.id === p.id)) continue;
     const sName = getShortName(p.name);
     if (p.pronouns === correctPerson.pronouns && !usedShortNames.has(sName)) {
       distractors.push(p);
@@ -379,12 +398,18 @@ function handleChoice(element, isCorrect) {
     streakCount = 0;
     updateStreakDisplay();
 
+    const targetId = currentCardInfo.profile.id;
+    const distractorId = element.dataset.profileId;
+
+    // Record in confusionMatrix
+    if (!confusionMatrix[targetId]) confusionMatrix[targetId] = {};
+    confusionMatrix[targetId][distractorId] = (confusionMatrix[targetId][distractorId] || 0) + 1;
+
     // Record failure for the TARGET card
     const targetScheduling = fsrs.repeat(targetCard, now);
     cardStates[targetKey] = targetScheduling[Rating.Again].card;
 
     // Record failure for the DISTRACTOR card for BOTH directions
-    const distractorId = element.dataset.profileId;
     ['face-to-name', 'name-to-face'].forEach((dir) => {
       const distractorKey = `${distractorId}:${dir}`;
       const distractorCard = getCard(distractorId, dir);
