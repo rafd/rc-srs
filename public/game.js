@@ -8,19 +8,11 @@ let hasErroredOnCurrent = false;
 let streakCount = 0;
 
 const STREAK_NAMES = {
-  1: 'FIRST FRIEND!',
-  2: 'DOUBLE FRIEND!',
-  3: 'MULTI FRIEND!',
-  4: 'MEGA FRIEND!',
-  5: 'ULTRA FRIEND!',
-  6: 'M-M-M-MONSTER FRIEND!',
-  7: 'LUDICROUS FRIEND!',
-  8: 'HOLY FRIEND!',
-  10: 'FRIEND SPREE!',
-  15: 'DOMINATING FRIEND!',
-  20: 'UNSTOPPABLE FRIEND!',
-  25: 'GODLIKE FRIEND!',
-  30: 'WICKED SICK FRIEND!',
+  10: 'MATCHING SPREE',
+  25: 'WICKED',
+  50: 'OCT-TASTIC',
+  75: 'R-R-R-RECURSIVE',
+  100: 'GODLIKE',
 };
 
 function showAnnouncement(text) {
@@ -36,8 +28,40 @@ function showAnnouncement(text) {
 }
 
 function updateStreakDisplay() {
-  const streakDisplay = document.getElementById('streak-display');
-  streakDisplay.textContent = streakCount > 0 ? `Streak: ${streakCount}` : '';
+  const container = document.getElementById('streak-container');
+  const progressBg = document.getElementById('streak-progress-bg');
+  const progressFill = document.getElementById('streak-progress-fill');
+
+  if (streakCount > 0) {
+    progressBg.style.display = 'block';
+
+    // Progress bar fills up every 10 points
+    const progress = (streakCount % 10 || 10) * 10;
+    progressFill.style.width = `${progress}%`;
+
+    // Color shifting: Green (0) -> Yellow (10) -> Red (20+)
+    let color;
+    if (streakCount < 10) {
+      color = '#28a745'; // Green
+    } else if (streakCount < 20) {
+      color = '#ffc107'; // Yellow
+    } else {
+      color = '#dc3545'; // Red
+    }
+    progressFill.style.background = color;
+
+    // Shake intensity: Increases every 5 points
+    const intensity = Math.min(Math.floor(streakCount / 5), 5);
+    if (intensity > 0) {
+      container.classList.add('shaking');
+      container.style.setProperty('--shake-intensity', `${intensity}px`);
+    } else {
+      container.classList.remove('shaking');
+    }
+  } else {
+    progressBg.style.display = 'none';
+    container.classList.remove('shaking');
+  }
 }
 
 function saveStates() {

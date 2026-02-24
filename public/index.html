@@ -17,13 +17,47 @@
         flex-direction: column;
       }
 
-      #streak-display {
-        font-size: 1.5rem;
-        font-weight: bold;
-        color: #555;
+      #streak-container {
+        width: 100%;
+        max-width: 600px;
         margin-bottom: 10px;
-        height: 1.5em;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
       }
+
+      #streak-progress-bg {
+        width: 100%;
+        height: 12px;
+        background: #ddd;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-top: 5px;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        display: none; /* Shown when streak > 0 */
+      }
+
+      #streak-progress-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #28a745, #ffc107);
+        transition: width 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.3s;
+      }
+
+      /* Shake Animations */
+      @keyframes streak-shake {
+        0% { transform: translate(0, 0) rotate(0deg); }
+        25% { transform: translate(-var(--shake-intensity), var(--shake-intensity)) rotate(calc(-1deg * var(--shake-intensity))); }
+        50% { transform: translate(var(--shake-intensity), -var(--shake-intensity)) rotate(calc(1deg * var(--shake-intensity))); }
+        75% { transform: translate(-var(--shake-intensity), -var(--shake-intensity)) rotate(calc(-1deg * var(--shake-intensity))); }
+        100% { transform: translate(0, 0) rotate(0deg); }
+      }
+
+      .shaking {
+        animation: streak-shake 0.1s infinite;
+        --shake-intensity: 1px;
+      }
+
       #game-container {
         width: 100%;
         max-width: 600px;
@@ -161,9 +195,9 @@
       /* UT2004 Style Streak Announcements */
       #announcement-overlay {
         position: fixed;
-        top: 50%;
+        top: 20px;
         left: 50%;
-        transform: translate(-50%, -50%);
+        transform: translateX(-50%);
         pointer-events: none;
         z-index: 1000;
         text-align: center;
@@ -171,18 +205,18 @@
 
       .announcement {
         font-family: 'Arial Black', 'Arial Bold', sans-serif;
-        font-size: 5rem;
+        font-size: 1.8rem;
         font-weight: 900;
         font-style: italic;
         color: #ffcc00;
         text-transform: uppercase;
         text-shadow:
-          4px 4px 0px #000,
+          2px 2px 0px #000,
           -1px -1px 0px #000,
           1px -1px 0px #000,
           -1px 1px 0px #000,
           1px 1px 0px #000,
-          0 0 20px rgba(255, 204, 0, 0.8);
+          0 0 10px rgba(255, 204, 0, 0.8);
         opacity: 0;
         animation: ut-announcement 1.5s ease-out forwards;
         white-space: nowrap;
@@ -214,7 +248,11 @@
   </head>
   <body>
     <div id="announcement-overlay"></div>
-    <div id="streak-display"></div>
+    <div id="streak-container">
+      <div id="streak-progress-bg">
+        <div id="streak-progress-fill"></div>
+      </div>
+    </div>
     <div id="game-container">
       <div id="game-content">
         <div class="loading">Loading RC Profiles...</div>
