@@ -6,18 +6,18 @@
     <title>RC Learning Game</title>
     <style>
         body { font-family: sans-serif; background-color: #f0f0f0; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
-        
+
         #game-container { width: 100%; max-width: 600px; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
         .challenge-target { margin-bottom: 30px; }
         .challenge-target img { width: 250px; height: 250px; border-radius: 12px; object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .challenge-target .target-name { font-size: 2.5em; font-weight: bold; color: #333; }
-        
+
         .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .option-btn { padding: 20px; font-size: 18px; cursor: pointer; border: 2px solid #eee; border-radius: 8px; background: #fff; transition: all 0.2s; font-weight: 500; }
         .option-btn:hover:not(:disabled) { background: #f8f9fa; border-color: #ddd; transform: translateY(-2px); }
         .option-btn.correct { background: #d4edda; border-color: #28a745; color: #155724; }
         .option-btn.incorrect { background: #f8d7da; border-color: #dc3545; color: #721c24; cursor: not-allowed; opacity: 0.7; }
-        
+
         .image-option { width: 100%; height: 180px; object-fit: cover; border-radius: 8px; border: 4px solid transparent; cursor: pointer; transition: all 0.2s; }
         .image-option:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
         .image-option.correct { border-color: #28a745; background: #d4edda; }
@@ -66,10 +66,10 @@
                 const response = await fetch(proxyUrl);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
-                
+
                 // Filter profiles that have both name and image
                 allProfiles = data.filter(p => p.name && p.image_path);
-                
+
                 if (allProfiles.length >= 4) {
                     startNewChallenge();
                 } else {
@@ -83,7 +83,7 @@
 
         function startNewChallenge() {
             const now = new Date();
-            
+
             // 1. Identify all possible cards (2 per profile)
             const allPossibleCards = [];
             allProfiles.forEach(p => {
@@ -127,14 +127,14 @@
             hasErroredOnCurrent = false;
 
             // Find distractors with same pronouns
-            let potentialDistractors = allProfiles.filter(p => 
-                p.id !== correctPerson.id && 
+            let potentialDistractors = allProfiles.filter(p =>
+                p.id !== correctPerson.id &&
                 p.pronouns === correctPerson.pronouns
             );
 
             if (potentialDistractors.length < 3) {
-                const others = allProfiles.filter(p => 
-                    p.id !== correctPerson.id && 
+                const others = allProfiles.filter(p =>
+                    p.id !== correctPerson.id &&
                     p.pronouns !== correctPerson.pronouns
                 );
                 const shuffledOthers = others.sort(() => 0.5 - Math.random());
@@ -189,13 +189,13 @@
         function handleChoice(element, isCorrect) {
             if (isCorrect) {
                 element.classList.add('correct');
-                
+
                 // Update FSRS state
                 const now = new Date();
                 const card = getCard(currentCardInfo.profile.id, currentCardInfo.type);
                 const rating = hasErroredOnCurrent ? Rating.Again : Rating.Good;
                 const schedulingCards = fsrs.repeat(card, now);
-                
+
                 // Update state
                 const key = `${currentCardInfo.profile.id}:${currentCardInfo.type}`;
                 cardStates[key] = schedulingCards[rating].card;
@@ -210,7 +210,7 @@
                         opt.style.pointerEvents = 'none';
                     }
                 }
-                
+
                 // Move to next challenge after a short delay
                 setTimeout(startNewChallenge, 1000);
             } else {
