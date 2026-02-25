@@ -197,6 +197,20 @@
         color: #666;
       }
 
+      /* Card Counts */
+      #card-counts {
+        position: fixed;
+        bottom: 12px;
+        right: 14px;
+        text-align: right;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.7;
+      }
+
+      #count-due { color: #fd7e14; }
+      #count-new { color: #adb5bd; }
+
       /* UT2004 Style Streak Announcements */
       #announcement-overlay {
         position: fixed;
@@ -258,6 +272,10 @@
     </div>
     <div id="game-content">
       <div class="loading">Loading RC Profiles...</div>
+    </div>
+    <div id="card-counts">
+      <div id="count-due"></div>
+      <div id="count-new"></div>
     </div>
 
     <script type="module" src="game.js"></script>

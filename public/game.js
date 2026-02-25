@@ -32,6 +32,26 @@ function showAnnouncement(text, color) {
   }, 1500);
 }
 
+function updateCardCounts() {
+  const now = new Date();
+  let dueCount = 0;
+  let newCount = 0;
+  allProfiles.forEach((p) => {
+    ['face-to-name', 'name-to-face'].forEach((type) => {
+      const card = getCard(p.id, type);
+      if (card.state === 0) newCount++;
+      else if (card.due <= now) dueCount++;
+    });
+  });
+  if (dueCount === 0 && newCount === 0) {
+    document.getElementById('count-due').textContent = 'You can take a break now!';
+    document.getElementById('count-new').textContent = '';
+  } else {
+    document.getElementById('count-due').textContent = dueCount > 0 ? `${dueCount} due` : '';
+    document.getElementById('count-new').textContent = newCount > 0 ? `${newCount} new` : '';
+  }
+}
+
 function updateStreakDisplay() {
   const container = document.getElementById('streak-container');
   const progressBg = document.getElementById('streak-progress-bg');
@@ -123,7 +143,25 @@ async function initGame() {
 }
 
 function startNewChallenge() {
-  // Try to load an existing active challenge first
+  const now = new Date();
+
+  // 1. Identify all possible cards (2 per profile)
+  const allPossibleCards = [];
+  allProfiles.forEach((p) => {
+    allPossibleCards.push({ profile: p, type: 'face-to-name' });
+    allPossibleCards.push({ profile: p, type: 'name-to-face' });
+  });
+
+  // 2. Find due cards (needed for progress bar before potential early return)
+  const dueCards = allPossibleCards.filter((c) => {
+    const card = getCard(c.profile.id, c.type);
+    return card.due <= now && card.state !== 0; // State 0 is New
+  });
+
+  // 3. Update card counts display
+  updateCardCounts();
+
+  // 4. Try to load an existing active challenge first
   const savedActive = localStorage.getItem('rc-memory-game-active-challenge');
   if (savedActive) {
     try {
@@ -145,21 +183,7 @@ function startNewChallenge() {
     }
   }
 
-  const now = new Date();
-
-  // 1. Identify all possible cards (2 per profile)
-  const allPossibleCards = [];
-  allProfiles.forEach((p) => {
-    allPossibleCards.push({ profile: p, type: 'face-to-name' });
-    allPossibleCards.push({ profile: p, type: 'name-to-face' });
-  });
-
-  // 2. Find due cards or new cards
-  const dueCards = allPossibleCards.filter((c) => {
-    const card = getCard(c.profile.id, c.type);
-    return card.due <= now && card.state !== 0; // State 0 is New
-  });
-
+  // 5. Find new cards
   const newCards = allPossibleCards.filter((c) => {
     const card = getCard(c.profile.id, c.type);
     return card.state === 0;
