@@ -49,6 +49,7 @@ function updateStreakDisplay() {
     const progress = ((cyclicStreak - prevMilestone) / (nextMilestone - prevMilestone)) * 100;
     progressFill.style.width = `${progress}%`;
     progressFill.style.background = STREAK_NAMES[nextMilestone].color;
+    progressBg.style.background = STREAK_NAMES[prevMilestone]?.color ?? '#ddd';
 
     // Shake intensity: Increases every 5 points
     const intensity = Math.min(Math.floor(streakCount / 5), 5);
