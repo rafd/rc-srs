@@ -150,6 +150,15 @@ app.get('/auth/callback', async (req, res) => {
 
     const tokenData = await tokenRes.json();
     req.session.token = tokenData.access_token;
+
+    const meRes = await fetch('https://www.recurse.com/api/v1/profiles/me', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+    if (meRes.ok) {
+      const me = await meRes.json();
+      req.session.userId = me.id;
+    }
+
     res.redirect('/');
   } catch (err) {
     console.error('Auth callback error:', err);
@@ -162,9 +171,10 @@ app.get('/api/directory', async (req, res) => {
   if (!token) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
+  console.log(token);
 
   if (cachedProfiles && Date.now() - cacheTime < CACHE_DURATION_MS) {
-    return res.json(cachedProfiles);
+    return res.json(cachedProfiles.filter((p) => p.id !== req.session.userId));
   }
 
   try {
@@ -176,7 +186,7 @@ app.get('/api/directory', async (req, res) => {
     cachedProfiles = [...profiles, ...recentVisitors];
     cacheTime = Date.now();
     res.setHeader('Cache-Control', `public, max-age=${6 * 60 * 60}`);
-    res.json(cachedProfiles);
+    res.json(cachedProfiles.filter((p) => p.id !== req.session.userId));
   } catch (err) {
     if (err.message.includes('401')) {
       req.session.destroy(() => {});
