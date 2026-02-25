@@ -52,6 +52,8 @@ const fetchAllProfiles = async (token) => {
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 app.use(
   session({
     secret: SESSION_SECRET,
