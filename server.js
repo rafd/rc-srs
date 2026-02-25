@@ -1,10 +1,17 @@
 import express from 'express';
+import session from 'express-session';
+import { randomBytes } from 'crypto';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
 const CACHE_DURATION_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+const RC_CLIENT_ID = process.env.RC_CLIENT_ID;
+const RC_CLIENT_SECRET = process.env.RC_CLIENT_SECRET;
+const SESSION_SECRET = process.env.SESSION_SECRET || randomBytes(32).toString('hex');
+const REDIRECT_URI = process.env.REDIRECT_URI || `http://localhost:${PORT}/auth/callback`;
 
 let cachedProfiles = null;
 let cacheTime = 0;
@@ -45,16 +52,76 @@ const fetchAllProfiles = async (token) => {
 
 const app = express();
 
+app.use(
+  session({
+    secret: SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false,
+    cookie: { httpOnly: true, sameSite: 'lax' },
+  }),
+);
+
 app.use(express.static(join(__dirname, 'public')));
 
+app.get('/auth/login', (req, res) => {
+  if (!RC_CLIENT_ID) {
+    return res.status(500).send('RC_CLIENT_ID not configured');
+  }
+  const state = randomBytes(16).toString('hex');
+  req.session.oauthState = state;
+  const params = new URLSearchParams({
+    client_id: RC_CLIENT_ID,
+    redirect_uri: REDIRECT_URI,
+    response_type: 'code',
+    state,
+  });
+  res.redirect(`https://www.recurse.com/oauth/authorize?${params}`);
+});
+
+app.get('/auth/callback', async (req, res) => {
+  const { code, state } = req.query;
+
+  if (!state || state !== req.session.oauthState) {
+    return res.status(400).send('Invalid state parameter');
+  }
+  delete req.session.oauthState;
+
+  try {
+    const tokenRes = await fetch('https://www.recurse.com/oauth/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: RC_CLIENT_ID,
+        client_secret: RC_CLIENT_SECRET,
+        code,
+        grant_type: 'authorization_code',
+        redirect_uri: REDIRECT_URI,
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      const body = await tokenRes.text();
+      console.error('Token exchange failed:', body);
+      return res.status(500).send('Failed to exchange authorization code for token');
+    }
+
+    const tokenData = await tokenRes.json();
+    req.session.token = tokenData.access_token;
+    res.redirect('/');
+  } catch (err) {
+    console.error('Auth callback error:', err);
+    res.status(500).send('Authentication error');
+  }
+});
+
 app.get('/api/directory', async (req, res) => {
-  if (cachedProfiles && Date.now() - cacheTime < CACHE_DURATION_MS) {
-    return res.json(cachedProfiles);
+  const token = req.session.token;
+  if (!token) {
+    return res.status(401).json({ error: 'Not authenticated' });
   }
 
-  const token = process.env.RC_TOKEN;
-  if (!token) {
-    return res.status(500).json({ error: 'RC_TOKEN not configured' });
+  if (cachedProfiles && Date.now() - cacheTime < CACHE_DURATION_MS) {
+    return res.json(cachedProfiles);
   }
 
   try {
@@ -64,6 +131,10 @@ app.get('/api/directory', async (req, res) => {
     res.setHeader('Cache-Control', `public, max-age=${6 * 60 * 60}`);
     res.json(profiles);
   } catch (err) {
+    if (err.message.includes('401')) {
+      req.session.destroy(() => {});
+      return res.status(401).json({ error: 'Authentication expired' });
+    }
     res.status(500).json({ error: err.message });
   }
 });

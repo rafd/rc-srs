@@ -101,6 +101,10 @@ async function initGame() {
 
   try {
     const response = await fetch(proxyUrl);
+    if (response.status === 401) {
+      container.innerHTML = '<h1>Learn You Some Face</h1><a href="/auth/login">Log In</a>';
+      return;
+    }
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const data = await response.json();
 
