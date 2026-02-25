@@ -16,11 +16,15 @@ const STREAK_NAMES = {
   100: { name: 'GODLIKE',         color: '#ffd700' }, // gold
 };
 
-function showAnnouncement(text) {
+function showAnnouncement(text, color) {
   const overlay = document.getElementById('announcement-overlay');
   const el = document.createElement('div');
   el.className = 'announcement';
   el.textContent = text;
+  if (color) {
+    el.style.color = color;
+    el.style.textShadow = `2px 2px 0px #000, -1px -1px 0px #000, 1px -1px 0px #000, -1px 1px 0px #000, 1px 1px 0px #000, 0 0 10px ${color}80`;
+  }
   overlay.appendChild(el);
   setTimeout(() => {
     el.style.opacity = '0';
@@ -332,9 +336,9 @@ function handleChoice(element, isCorrect) {
       streakCount++;
       updateStreakDisplay();
       if (STREAK_NAMES[streakCount]) {
-        showAnnouncement(STREAK_NAMES[streakCount].name);
+        showAnnouncement(STREAK_NAMES[streakCount].name, STREAK_NAMES[streakCount].color);
       } else if (streakCount > 100 && streakCount % 5 === 0) {
-        showAnnouncement(STREAK_NAMES[100].name);
+        showAnnouncement(STREAK_NAMES[100].name, STREAK_NAMES[100].color);
       }
     }
 
