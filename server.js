@@ -183,7 +183,9 @@ app.get('/api/directory', async (req, res) => {
       token,
       profiles.map((p) => p.id),
     );
-    cachedProfiles = [...profiles, ...recentVisitors];
+    cachedProfiles = [...profiles, ...recentVisitors].filter(
+      (p) => !p.image_path?.includes('no_photo'),
+    );
     cacheTime = Date.now();
     res.setHeader('Cache-Control', `public, max-age=${6 * 60 * 60}`);
     res.json(cachedProfiles.filter((p) => p.id !== req.session.userId));
