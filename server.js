@@ -100,7 +100,7 @@ app.use(
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: { httpOnly: true, sameSite: 'lax' },
+    cookie: { httpOnly: true, sameSite: 'lax', maxAge: 400 * 24 * 60 * 60 * 1000 },
   }),
 );
 
