@@ -253,7 +253,7 @@ function renderChallenge(type, correct, options) {
   targetDiv.className = 'challenge-target';
 
   if (type === 'face-to-name') {
-    targetDiv.innerHTML = `<img src="${correct.image_path}" alt="${correct.first_name}">`;
+    targetDiv.innerHTML = `<img src="${correct.image_path}">`;
   } else {
     targetDiv.innerHTML = `<div class="target-name">${correct.first_name}</div>`;
   }
