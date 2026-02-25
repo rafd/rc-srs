@@ -9,12 +9,18 @@ let hasErroredOnCurrent = false;
 let streakCount = parseInt(localStorage.getItem('rc-memory-game-streak') || '0', 10);
 
 const STREAK_NAMES = {
-  10:  { name: 'MATCHING SPREE',  color: '#28a745' }, // green
-  25:  { name: 'WICKED',          color: '#20c997' }, // teal
-  50:  { name: 'OCT-TASTIC',      color: '#4dabf7' }, // blue
-  75:  { name: 'R-R-R-RECURSIVE', color: '#ae3ec9' }, // purple
-  100: { name: 'GODLIKE',         color: '#ffd700' }, // gold
+    8: { name: '🐙',                  color: '#0088d2' },
+   16: { name: 'WICKED',              color: '#645dac' },
+   32: { name: 'FANTASTIC',           color: '#cb1f47' },
+   64: { name: '🐙🐙',                color: '#f56f02' },
+  128: { name: 'R-R-R-RECURSIVE',     color: '#e83e8c' },
+  256: { name: 'INCONCEIVABLE',       color: '#00b345' },
+  512: { name: '🐙🐙🐙',              color: '#0088d2' },
+ 1024: { name: 'UNFRIGGINBELIEVABLE', color: '#645dac' },
+ 2048: { name: 'GODLIKE',             color: '#cb1f47' },
 };
+
+
 
 function showAnnouncement(text, color) {
   const overlay = document.getElementById('announcement-overlay');
