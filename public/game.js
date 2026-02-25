@@ -9,11 +9,11 @@ let hasErroredOnCurrent = false;
 let streakCount = parseInt(localStorage.getItem('rc-memory-game-streak') || '0', 10);
 
 const STREAK_NAMES = {
-  10: 'MATCHING SPREE',
-  25: 'WICKED',
-  50: 'OCT-TASTIC',
-  75: 'R-R-R-RECURSIVE',
-  100: 'GODLIKE',
+  10:  { name: 'MATCHING SPREE',  color: '#28a745' }, // green
+  25:  { name: 'WICKED',          color: '#20c997' }, // teal
+  50:  { name: 'OCT-TASTIC',      color: '#4dabf7' }, // blue
+  75:  { name: 'R-R-R-RECURSIVE', color: '#ae3ec9' }, // purple
+  100: { name: 'GODLIKE',         color: '#ffd700' }, // gold
 };
 
 function showAnnouncement(text) {
@@ -36,20 +36,15 @@ function updateStreakDisplay() {
   if (streakCount > 0) {
     progressBg.style.display = 'block';
 
-    // Progress bar fills up every 10 points
-    const progress = (streakCount % 10 || 10) * 10;
+    // Progress bar fills between consecutive STREAK_NAMES milestones
+    const milestones = [0, ...Object.keys(STREAK_NAMES).map(Number).sort((a, b) => a - b)];
+    const maxMilestone = milestones[milestones.length - 1];
+    const cyclicStreak = ((streakCount - 1) % maxMilestone) + 1;
+    const prevMilestone = [...milestones].reverse().find((m) => m < cyclicStreak) ?? 0;
+    const nextMilestone = milestones.find((m) => m >= cyclicStreak) ?? maxMilestone;
+    const progress = ((cyclicStreak - prevMilestone) / (nextMilestone - prevMilestone)) * 100;
     progressFill.style.width = `${progress}%`;
-
-    // Color shifting: Green (0) -> Yellow (10) -> Red (20+)
-    let color;
-    if (streakCount < 10) {
-      color = '#28a745'; // Green
-    } else if (streakCount < 20) {
-      color = '#ffc107'; // Yellow
-    } else {
-      color = '#dc3545'; // Red
-    }
-    progressFill.style.background = color;
+    progressFill.style.background = STREAK_NAMES[nextMilestone].color;
 
     // Shake intensity: Increases every 5 points
     const intensity = Math.min(Math.floor(streakCount / 5), 5);
@@ -337,9 +332,9 @@ function handleChoice(element, isCorrect) {
       streakCount++;
       updateStreakDisplay();
       if (STREAK_NAMES[streakCount]) {
-        showAnnouncement(STREAK_NAMES[streakCount]);
-      } else if (streakCount > 30 && streakCount % 5 === 0) {
-        showAnnouncement(STREAK_NAMES[30]);
+        showAnnouncement(STREAK_NAMES[streakCount].name);
+      } else if (streakCount > 100 && streakCount % 5 === 0) {
+        showAnnouncement(STREAK_NAMES[100].name);
       }
     }
 
