@@ -50,6 +50,37 @@ const fetchAllProfiles = async (token) => {
   return allProfiles;
 };
 
+const fetchRecentVisitorProfiles = async (token, existingIds) => {
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 2);
+  const startDateStr = startDate.toISOString().split('T')[0];
+
+  const response = await fetch(
+    `https://www.recurse.com/api/v1/hub_visits?start_date=${startDateStr}&per_page=200`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!response.ok) throw new Error(`Visits status: ${response.status}`);
+  const visits = await response.json();
+
+  const existingIdSet = new Set(existingIds);
+  const visitorIds = [...new Set(visits.map((v) => v.person.id))].filter(
+    (id) => !existingIdSet.has(id),
+  );
+
+  const profiles = await Promise.all(
+    visitorIds.map(async (id) => {
+      const r = await fetch(`https://www.recurse.com/api/v1/profiles/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok) return null;
+      const { id: pid, first_name, image_path, pronouns } = await r.json();
+      return { id: pid, first_name, image_path, pronouns, recentVisit: true };
+    }),
+  );
+
+  return profiles.filter(Boolean);
+};
+
 const app = express();
 
 app.use(
@@ -126,10 +157,14 @@ app.get('/api/directory', async (req, res) => {
 
   try {
     const profiles = await fetchAllProfiles(token);
-    cachedProfiles = profiles;
+    const recentVisitors = await fetchRecentVisitorProfiles(
+      token,
+      profiles.map((p) => p.id),
+    );
+    cachedProfiles = [...profiles, ...recentVisitors];
     cacheTime = Date.now();
     res.setHeader('Cache-Control', `public, max-age=${6 * 60 * 60}`);
-    res.json(profiles);
+    res.json(cachedProfiles);
   } catch (err) {
     if (err.message.includes('401')) {
       req.session.destroy(() => {});
