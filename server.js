@@ -52,8 +52,6 @@ const fetchAllProfiles = async (token) => {
 
 const app = express();
 
-app.set('trust proxy', 1);
-
 app.use(
   session({
     secret: SESSION_SECRET,
@@ -62,13 +60,6 @@ app.use(
     cookie: { httpOnly: true, sameSite: 'lax' },
   }),
 );
-
-app.use((req, res, next) => {
-  if (req.hostname === 'names.recurse.com') {
-    return res.redirect(301, 'https://srs.rcdis.co');
-  }
-  next();
-});
 
 app.use(express.static(join(__dirname, 'public')));
 
