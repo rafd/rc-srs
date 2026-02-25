@@ -282,10 +282,23 @@ function renderChallenge(type, correct, options) {
   targetDiv.className = 'challenge-target';
 
   if (type === 'face-to-name') {
-    targetDiv.innerHTML = `<img src="${correct.image_path}">`;
+    const img = document.createElement('img');
+    img.src = correct.image_path;
+    targetDiv.appendChild(img);
   } else {
-    targetDiv.innerHTML = `<div class="target-name">${correct.first_name}</div>`;
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'target-name';
+    nameDiv.textContent = correct.first_name;
+    targetDiv.appendChild(nameDiv);
   }
+
+  if (correct.role && correct.role !== 'current') {
+    const badge = document.createElement('span');
+    badge.className = `role-badge role-badge--${correct.role}`;
+    badge.textContent = correct.role;
+    targetDiv.appendChild(badge);
+  }
+
   container.appendChild(targetDiv);
 
   const optionsGrid = document.createElement('div');

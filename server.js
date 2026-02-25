@@ -16,6 +16,12 @@ const REDIRECT_URI = process.env.REDIRECT_URI || `http://localhost:${PORT}/auth/
 let cachedProfiles = null;
 let cacheTime = 0;
 
+const getRoleFromStints = (stints = []) => {
+  if (stints.some((s) => s.type === 'employment' && s.in_progress)) return 'faculty';
+  if (stints.some((s) => s.type === 'retreat' && s.in_progress)) return 'current';
+  return 'alumni';
+};
+
 const fetchProfiles = async (token, offset, limit) => {
   const response = await fetch(
     `https://www.recurse.com/api/v1/profiles?scope=current&limit=${limit}&offset=${offset}`,
@@ -40,7 +46,13 @@ const fetchAllProfiles = async (token) => {
     }
 
     allProfiles = allProfiles.concat(
-      data.map(({ id, first_name, image_path, pronouns }) => ({ id, first_name, image_path, pronouns })),
+      data.map(({ id, first_name, image_path, pronouns, stints }) => ({
+        id,
+        first_name,
+        image_path,
+        pronouns,
+        role: getRoleFromStints(stints),
+      })),
     );
     offset += limit;
 
@@ -73,8 +85,8 @@ const fetchRecentVisitorProfiles = async (token, existingIds) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!r.ok) return null;
-      const { id: pid, first_name, image_path, pronouns } = await r.json();
-      return { id: pid, first_name, image_path, pronouns, recentVisit: true };
+      const { id: pid, first_name, image_path, pronouns, stints } = await r.json();
+      return { id: pid, first_name, image_path, pronouns, role: getRoleFromStints(stints) };
     }),
   );
 
