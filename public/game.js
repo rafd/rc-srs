@@ -363,9 +363,11 @@ function handleChoice(element, isCorrect) {
     const targetId = currentCardInfo.profile.id;
     const distractorId = element.dataset.profileId;
 
-    // Record in confusionMatrix
+    // Record in confusionMatrix for both directions
     if (!confusionMatrix[targetId]) confusionMatrix[targetId] = {};
     confusionMatrix[targetId][distractorId] = (confusionMatrix[targetId][distractorId] || 0) + 1;
+    if (!confusionMatrix[distractorId]) confusionMatrix[distractorId] = {};
+    confusionMatrix[distractorId][targetId] = (confusionMatrix[distractorId][targetId] || 0) + 1;
 
     // Record failure for the TARGET card
     const targetScheduling = fsrs.repeat(targetCard, now);
