@@ -61,6 +61,13 @@ app.use(
   }),
 );
 
+app.use((req, res, next) => {
+  if (req.hostname === 'names.recurse.com') {
+    return res.redirect(301, 'https://srs.rcdis.co');
+  }
+  next();
+});
+
 app.use(express.static(join(__dirname, 'public')));
 
 app.get('/auth/login', (req, res) => {
