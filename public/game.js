@@ -388,10 +388,11 @@ function handleChoice(element, isCorrect) {
 
       streakCount++;
       updateStreakDisplay();
+      const maxMilestoneKey = Math.max(...Object.keys(STREAK_NAMES).map(Number));
       if (STREAK_NAMES[streakCount]) {
         showAnnouncement(STREAK_NAMES[streakCount].name, STREAK_NAMES[streakCount].color);
-      } else if (streakCount > 100 && streakCount % 5 === 0) {
-        showAnnouncement(STREAK_NAMES[100].name, STREAK_NAMES[100].color);
+      } else if (streakCount > maxMilestoneKey && streakCount % 5 === 0) {
+        showAnnouncement(STREAK_NAMES[maxMilestoneKey].name, STREAK_NAMES[maxMilestoneKey].color);
       }
     }
 
