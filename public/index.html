@@ -234,6 +234,16 @@
       #count-due { color: #fd7e14; }
       #count-new { color: #adb5bd; }
 
+      #source-link {
+        position: fixed;
+        bottom: 12px;
+        left: 14px;
+        font-size: 13px;
+        color: #adb5bd;
+        text-decoration: none;
+      }
+      #source-link:hover { color: #666; }
+
       /* UT2004 Style Streak Announcements */
       #announcement-overlay {
         position: fixed;
@@ -296,6 +306,7 @@
     <div id="game-content">
       <div class="loading">Loading RC Profiles...</div>
     </div>
+    <a id="source-link" href="https://github.com/rafd/rc-srs" target="_blank">source</a>
     <div id="card-counts">
       <div id="count-due"></div>
       <div id="count-new"></div>
