@@ -1,9 +1,11 @@
 import { FSRS, Rating, generatorParameters, createEmptyCard } from 'https://esm.sh/ts-fsrs@5.2.3';
 
 const fsrs = new FSRS(generatorParameters());
+const MIN_REPEAT_GAP = 4; // Min cards between seeing the same person as the main prompt
 let allProfiles = [];
 let cardStates = JSON.parse(localStorage.getItem('rc-memory-game-cards') || '{}');
 let confusionMatrix = JSON.parse(localStorage.getItem('rc-memory-game-confusion') || '{}');
+let recentProfileIds = []; // rolling window of recently shown profile IDs (in-memory only)
 let currentCardInfo = null;
 let hasErroredOnCurrent = false;
 let streakCount = parseInt(localStorage.getItem('rc-memory-game-streak') || '0', 10);
@@ -195,30 +197,37 @@ function startNewChallenge() {
     return card.state === 0;
   });
 
+  const withGap = (cards) => cards.filter((c) => !recentProfileIds.includes(c.profile.id));
+
   let selected;
   if (dueCards.length > 0) {
-    // Pick the most overdue card
-    selected = dueCards.sort((a, b) => {
-      const cardA = getCard(a.profile.id, a.type);
-      const cardB = getCard(b.profile.id, b.type);
-      return cardA.due - cardB.due;
-    })[0];
+    // Pick the most overdue card, preferring ones outside the recent gap
+    const sortByDue = (cards) =>
+      cards.sort((a, b) => getCard(a.profile.id, a.type).due - getCard(b.profile.id, b.type).due);
+    const pool = withGap(dueCards);
+    selected = sortByDue(pool.length > 0 ? pool : dueCards)[0];
   } else if (newCards.length > 0) {
-    // Pick a random new card
-    selected = newCards[Math.floor(Math.random() * newCards.length)];
+    // Pick a random new card, preferring ones outside the recent gap
+    const pool = withGap(newCards);
+    const eligible = pool.length > 0 ? pool : newCards;
+    selected = eligible[Math.floor(Math.random() * eligible.length)];
   } else {
-    // Everything is reviewed and not yet due, pick the one due soonest
-    selected = allPossibleCards.sort((a, b) => {
-      const cardA = getCard(a.profile.id, a.type);
-      const cardB = getCard(b.profile.id, b.type);
-      return cardA.due - cardB.due;
-    })[0];
+    // Everything reviewed and not yet due — pick the one due soonest
+    const sortByDue = (cards) =>
+      cards.sort((a, b) => getCard(a.profile.id, a.type).due - getCard(b.profile.id, b.type).due);
+    const pool = withGap(allPossibleCards);
+    selected = sortByDue(pool.length > 0 ? pool : allPossibleCards)[0];
   }
 
   const { profile: correctPerson, type: challengeType } = selected;
   const targetCard = getCard(correctPerson.id, challengeType);
   currentCardInfo = selected;
   hasErroredOnCurrent = false;
+
+  recentProfileIds.push(correctPerson.id);
+  if (recentProfileIds.length > MIN_REPEAT_GAP) {
+    recentProfileIds = recentProfileIds.slice(-MIN_REPEAT_GAP);
+  }
 
   const numCandidates = getNumCandidates(targetCard, allProfiles.length);
   const numDistractors = numCandidates - 1;
