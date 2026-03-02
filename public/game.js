@@ -200,17 +200,17 @@ function startNewChallenge() {
   const withGap = (cards) => cards.filter((c) => !recentProfileIds.includes(c.profile.id));
 
   let selected;
-  if (dueCards.length > 0) {
+  if (newCards.length > 0) {
+    // Pick a random new card, preferring ones outside the recent gap
+    const pool = withGap(newCards);
+    const eligible = pool.length > 0 ? pool : newCards;
+    selected = eligible[Math.floor(Math.random() * eligible.length)];
+  } else if (dueCards.length > 0) {
     // Pick the most overdue card, preferring ones outside the recent gap
     const sortByDue = (cards) =>
       cards.sort((a, b) => getCard(a.profile.id, a.type).due - getCard(b.profile.id, b.type).due);
     const pool = withGap(dueCards);
     selected = sortByDue(pool.length > 0 ? pool : dueCards)[0];
-  } else if (newCards.length > 0) {
-    // Pick a random new card, preferring ones outside the recent gap
-    const pool = withGap(newCards);
-    const eligible = pool.length > 0 ? pool : newCards;
-    selected = eligible[Math.floor(Math.random() * eligible.length)];
   } else {
     // Everything reviewed and not yet due — pick the one due soonest
     const sortByDue = (cards) =>
