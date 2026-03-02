@@ -318,6 +318,8 @@ function renderChallenge(type, correct, options) {
 
   const optionsGrid = document.createElement('div');
   optionsGrid.className = 'options-grid';
+  optionsGrid.style.opacity = '0';
+  optionsGrid.style.pointerEvents = 'none';
 
   options.forEach((option, index) => {
     const label = index + 1;
@@ -353,12 +355,18 @@ function renderChallenge(type, correct, options) {
   });
 
   container.appendChild(optionsGrid);
+  setTimeout(() => {
+    optionsGrid.style.opacity = '1';
+    optionsGrid.style.pointerEvents = '';
+  }, 500);
 }
 
 // Add global keyboard listener
 window.addEventListener('keydown', (e) => {
   const key = parseInt(e.key);
   if (key >= 1 && key <= 8) {
+    const grid = document.querySelector('.options-grid');
+    if (!grid || grid.style.opacity === '0') return;
     const wrappers = document.querySelectorAll('.option-wrapper');
     const target = wrappers[key - 1];
     if (target) {
